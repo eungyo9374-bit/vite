@@ -124,7 +124,7 @@ function headerHtml(route) {
   <header class="top">
     <a class="logo" href="#/"><span>🍊</span> 제주나라</a>
     <nav>
-      ${link('home', '홈')}${link('gallery', '갤러리')}${link('my', '내 보관함')}
+      ${link('home', '홈')}${link('map', '3D 지도')}${link('gallery', '갤러리')}${link('my', '내 보관함')}
     </nav>
     <div class="auth">
       ${
@@ -197,7 +197,8 @@ function pageHome(root) {
       <h1>바람, 바다, 그리고 감귤.<br />제주의 풍경을 모아 보세요</h1>
       <p class="lead">한라산부터 유채꽃밭까지, 마음에 드는 제주 사진을 내 보관함에 담아 둘 수 있어요.</p>
       <div class="cta">
-        <a class="btn big" href="#/gallery">갤러리 둘러보기</a>
+        <a class="btn big" href="#/map">🗺️ 3D 지도 탐험</a>
+        <a class="btn big ghost light" href="#/gallery">갤러리 둘러보기</a>
         ${state.user ? '<a class="btn big ghost light" href="#/my">내 보관함</a>' : '<a class="btn big ghost light" href="#/signup">무료 회원가입</a>'}
       </div>
     </div>
@@ -210,6 +211,7 @@ function pageHome(root) {
     </div>
   </section>
   <section class="wrap feats">
+    <div class="feat"><b>🗺️ 입체 제주 지도</b><p>한라산·오름·풍력발전기·등대·돌하르방을 돌려 보고 확대하며 둘러봐요.</p></div>
     <div class="feat"><b>🔐 안전한 회원 기능</b><p>Supabase 인증으로 이메일 회원가입과 로그인을 지원해요.</p></div>
     <div class="feat"><b>♥ 나만의 보관함</b><p>마음에 드는 사진을 담아 두면 언제든 다시 볼 수 있어요.</p></div>
     <div class="feat"><b>📷 Pixabay 사진</b><p>무료로 쓸 수 있는 고화질 사진을 실시간으로 불러와요.</p></div>
@@ -397,13 +399,47 @@ function pageMy(root) {
   }
 }
 
+/* ---------------- 페이지: 3D 지도 ---------------- */
+let mapToken = 0
+let mapDispose = null
+let visitorsCache = null
+async function loadVisitors() {
+  if (visitorsCache) return visitorsCache
+  try {
+    const r = await fetch('/api/visitors')
+    if (!r.ok) return null
+    visitorsCache = await r.json()
+    return visitorsCache
+  } catch {
+    return null
+  }
+}
+function pageMap(root) {
+  const token = mapToken
+  root.innerHTML = '<div class="map-boot">🍊 3D 지도를 불러오는 중…</div>'
+  Promise.all([import('./map3d.js'), loadVisitors()])
+    .then(async ([m, visitors]) => {
+      if (token !== mapToken) return
+      const dispose = await m.mountMap(root, { visitors })
+      if (token !== mapToken) dispose()
+      else mapDispose = dispose
+    })
+    .catch((e) => {
+      console.error(e)
+      if (token === mapToken) root.innerHTML = `<div class="map-boot">3D 지도를 열지 못했어요: ${esc(e.message)}<br>(WebGL 을 지원하는 브라우저인지 확인해 주세요)</div>`
+    })
+}
+
 /* ---------------- 라우터 ---------------- */
 function renderRoute() {
   const route = currentRoute()
   const root = document.getElementById('view')
   if (!root) return
+  mapToken++
+  if (mapDispose) { mapDispose(); mapDispose = null }
   window.scrollTo(0, 0)
-  if (route === 'gallery') pageGallery(root)
+  if (route === 'map') pageMap(root)
+  else if (route === 'gallery') pageGallery(root)
   else if (route === 'login') pageAuth(root, 'login')
   else if (route === 'signup') pageAuth(root, 'signup')
   else if (route === 'my') pageMy(root)

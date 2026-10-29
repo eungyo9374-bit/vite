@@ -9,13 +9,20 @@
 | 제주 사진 | Pixabay API (Vercel 서버리스 함수 `api/pixabay.js` 로 키 보호) |
 | 배포 | GitHub → Vercel |
 
-## 환경변수 3개
+## 3D 지도 (`#/map`)
+three.js 로 만든 입체 제주 지도입니다. 한라산·오름, 풍력발전기, 등대, 돌하르방, 항·포구, 올레길, 감귤 재배지를 켜고 끌 수 있고,
+서귀포 관광지 6곳의 월별 방문객(공공데이터포털 API)을 3D 막대로 보여 줍니다. 지형은 `public/jeju_dem.bin`(AWS Terrain Tiles 기반 고도 격자)입니다.
+마커 좌표는 감상용 대략 위치이며 `src/jejuData.js` 에서 고칠 수 있어요.
+
+## 환경변수 4개
 
 | 이름 | 어디서 얻나 | 노출 범위 | 쓰이는 곳 |
 |---|---|---|---|
 | `VITE_SUPABASE_URL` | Supabase 프로젝트 URL | 브라우저 (공개 가능) | `src/supabase.js` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon(publishable) 키 | 브라우저 (공개 가능, RLS 로 보호) | `src/supabase.js` |
 | `PIXABAY_API_KEY` | Pixabay API 키 | **서버만** (`VITE_` 를 붙이지 마세요) | `api/pixabay.js` |
+
+| `ODCLOUD_SERVICE_KEY` | 공공데이터포털 마이페이지 → 개발계정 상세 → 일반 인증키(**Decoding**) | **서버만** | `api/visitors.js` (3D 지도의 월별 방문객) |
 
 > `service_role` 키는 절대 사용하지도, 넣지도 마세요.
 
