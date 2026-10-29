@@ -52,6 +52,15 @@ const authMsg = (e) => {
   return m || '문제가 생겼어요. 잠시 후 다시 시도해 주세요.'
 }
 
+const dbMsg = (e) => {
+  const m = e?.message || ''
+  if (e?.code === '42P01' || e?.code === 'PGRST205' || /schema cache|does not exist/i.test(m))
+    return '보관함 테이블이 없어요. Supabase SQL Editor 에서 supabase/schema.sql 을 실행해 주세요.'
+  if (e?.code === '42501' || /permission denied|row-level security/i.test(m))
+    return '보관함 권한 오류예요. supabase/schema.sql 의 GRANT 와 정책(policy) 부분을 실행해 주세요.'
+  return m || '보관함 처리 중 문제가 생겼어요.'
+}
+
 /* ---------------- 보관함 (Supabase DB) ---------------- */
 async function loadFavs() {
   if (!state.user) {
@@ -61,7 +70,8 @@ async function loadFavs() {
   }
   const { data, error } = await supabase.from('favorites').select('*').order('created_at', { ascending: false })
   if (error) {
-    toast('보관함을 불러오지 못했어요: ' + error.message, 'error')
+    console.error('favorites select', error)
+    toast(dbMsg(error), 'error')
     return
   }
   state.favs = data
@@ -78,7 +88,7 @@ async function toggleFav(img) {
   const id = Number(img.id)
   if (state.favIds.has(id)) {
     const { error } = await supabase.from('favorites').delete().eq('pixabay_id', id)
-    if (error) return toast(error.message, 'error')
+    if (error) return (console.error('favorites delete', error), toast(dbMsg(error), 'error'))
     state.favIds.delete(id)
     state.favs = state.favs.filter((f) => Number(f.pixabay_id) !== id)
     toast('보관함에서 뺐어요')
@@ -92,7 +102,7 @@ async function toggleFav(img) {
       page_url: img.pageURL,
     }
     const { data, error } = await supabase.from('favorites').insert(row).select().single()
-    if (error) return toast(error.message, 'error')
+    if (error) return (console.error('favorites insert', error), toast(dbMsg(error), 'error'))
     state.favIds.add(id)
     state.favs.unshift(data)
     toast('보관함에 담았어요 ♥')
